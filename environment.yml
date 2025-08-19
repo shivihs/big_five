@@ -1,0 +1,13 @@
+name: big_five_env
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - pandas
+  - streamlit
+  - seaborn
+  - matplotlib
+  - pip
+  - pip:
+    - openai
+    - python-dotenv

@@ -4,18 +4,18 @@ import seaborn as sns
 import random
 from openai import OpenAI
 from dotenv import dotenv_values
-from config.constants import APP_TITLE, BIG5_ITEMS
+from config.constants import APP_TITLE, BIG5_ITEMS, BIG5_SHORT_LABELS
+import json
 
-# Set the page configuration
+
 st.set_page_config(
-    page_title="Big Five Personality Test",
+    page_title=APP_TITLE,
     page_icon="🧠",
-    layout="centered",  # Options: "centered" or "wide"
-    initial_sidebar_state="expanded"  # Options: "auto", "expanded", "collapsed"
+    layout="centered",  
+    initial_sidebar_state="expanded"  
 )
 
-# Your app code here
-st.title(f"🧠 {APP_TITLE}")
+st.header(f"🧠 {APP_TITLE} :computer:")
 
 big5_items = BIG5_ITEMS
 
@@ -30,6 +30,7 @@ if "results" not in st.session_state:
 def get_person_description(results: dict):
     personality_description = openai_client.chat.completions.create(
         model="gpt-4o-mini",
+        response_format={"type": "json_object"},
         messages=[
         {
             "role": "system",
@@ -44,18 +45,7 @@ def get_person_description(results: dict):
                 "- zaproponować 2–3 przykładowe frazy, które użytkownik może wykorzystać w CV.\n"
                 "Jako podsumowanie podaj opis kompetencji miękkich w 4-5 zdaniach pisanych w pierwszej osobie do CV - unikaj z testu, pisz naturalnie jako osoba nie znająca nomenklatury psychologicznej..\n"
                 "Zawsze odpowiadaj wyłącznie w formacie JSON. "
-                # "Nie dodawaj żadnego komentarza, tekstu ani wyjaśnienia poza JSON-em. "
-                # # "Struktura odpowiedzi musi być dokładnie taka:"
-                # # # "{"
-                # # # "  \"opis\": \"string\","
-                # # # "  \"mocne_strony\": [\"string\", \"string\"],"
-                # # # "  \"obszary_rozwoju\": [\"string\", \"string\"],"
-                # # # "  \"kompetencje_miekkie\": [\"string\", \"string\"],"
-                # # # "  \"frazy_do_cv\": [\"string\", \"string\"]"
-                # # # "  \"opis_do_CV\": \"string\","
-                # # # "}"
-                "W JSON zawsze używaj stałych nazw kluczy - opis_osobowosci, mocne_strony, obszary_rozwoju, kompetencje_miekkie, frazy_do_cv, opis_do_cv"
-
+                "W JSON zawsze używaj stałych nazw kluczy - opis_osobowosci (string), mocne_strony (lista stringów), obszary_rozwoju (lista stringów), kompetencje_miekkie (lista stringów), frazy_do_cv (lista stringów), opis_do_cv (string)"
             )
         },
         {
@@ -123,7 +113,40 @@ def random_responses(big5_items: dict) -> dict[str, int]:
             responses[it["id"]] = random.randint(1, 5)
     return responses
 
+def show_big5_results(description: dict):
+    st.markdown(description["opis_osobowosci"])
+
+def show_list(items):
+    if not items:
+        return
+    # Upewnij się, że items to lista
+    if isinstance(items, str):
+        # Jeśli to string, spróbuj go rozdzielić lub potraktuj jako pojedynczy element
+        items = [items] if items else []
+    elif not isinstance(items, list):
+        items = []
+    
+    bullets = "\n".join([f"- {item}" for item in items])
+    st.markdown(bullets)
+
+def show_description(description: dict):
+    st.subheader("Opis Twoich cech charakteru:")
+    st.success(description["opis_osobowosci"])
+    with st.status("Mocne strony"):
+        show_list(description["mocne_strony"])
+    with st.status("Obszary rozwoju"):
+        show_list(description["obszary_rozwoju"])
+    with st.status("Kompetencje miękkie"):
+        show_list(description["kompetencje_miekkie"])
+    with st.status("Frazy do CV"):
+        show_list(description["frazy_do_cv"])
+    st.subheader("Propozycja opisu do CV:")
+    st.info(description["opis_do_cv"])
+
 def show_results(results: dict):
+
+    st.markdown("---")
+    st.subheader("Twoje wyniki w teście Big Five Personality:\n\n")
     col1, col2, col3, col4, col5 = st.columns(5)
     with col1:
         st.metric(label="Otwartość na doświadczenie", value=results["percent"]["O"])
@@ -138,56 +161,32 @@ def show_results(results: dict):
 
     st.markdown("---")
 
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric(label="TOP-1", value=results["top3"][0][0])
-    with col2:
-        st.metric(label="TOP-2", value=results["top3"][1][0])
-    with col3:
-        st.metric(label="TOP-3", value=results["top3"][2][0])
+    st.subheader("Twoje TOP-3 cechy charakteru:")
+    st.markdown(f"""
+    - {BIG5_SHORT_LABELS[results["top3"][0][0]]} - {results["top3"][0][1]}%
+    - {BIG5_SHORT_LABELS[results["top3"][1][0]]} - {results["top3"][1][1]}%
+    - {BIG5_SHORT_LABELS[results["top3"][2][0]]} - {results["top3"][2][1]}%
+    """)
 
     st.markdown("---")
-
+    description = None
     with st.spinner("Generuję opis..."):
-        description = get_person_description(results)   
-    st.markdown(description)
+        description = json.loads(get_person_description(st.session_state.results))   
+    
+    show_description(description)
+
+
 
 with st.sidebar:
-    st.title("🧠 Big Five Personality Test")
-    st.write("Witaj w teście Big Five Personality!")
-    st.write("Ten test pomaga zrozumieć, jakie umiejętności i cechy charakteru posiadasz.")
-    st.write("Odpowiedz na pytania, a dowiesz się, jakie masz cechy charakteru.")
+    st.subheader(":blue[**Witaj w teście Big Five (IPP20)!**]")
+    st.markdown("Ten test nie jest diagnozą – to narzędzie, które pomoże Ci lepiej poznać siebie.")
+    st.markdown("Dzięki niemu zobaczysz swoje atuty, zauważysz obszary do rozwoju i otrzymasz propozycję, jak możesz ująć swoje mocne strony w CV.")
+    st.markdown("**Traktuj wyniki jako podpowiedź i inspirację, a nie ostateczną ocenę.**")
 
-if st.sidebar.button("Losuj odpowiedzi"):
+if st.sidebar.button("Losuj odpowiedzi"):       
     responses = random_responses(big5_items)
     st.session_state.results = score_big5(responses)
     show_results(st.session_state.results)
-    
-    
-# --- Przykład użycia ---
-# responses = random_responses(big5_items)
-# print("Symulowane odpowiedzi:", responses)
-
-# results = score_big5(responses)
-# print("\nWyniki procentowe:", results["percent"])
-# print("Etykiety:", results["labels"])
-# print("TOP-3:", results["top3"])
 
 
-#
-# Wyróżnianie danych
-#
 
-st.success("✅ To jest pozytywny komunikat w zielonym boxie.")
-st.info("ℹ️ To jest informacyjny box w niebieskim kolorze.")
-st.warning("⚠️ To jest ostrzeżenie w żółtym boxie.")
-st.error("❌ To jest komunikat błędu w czerwonym boxie.")
-
-with st.container():
-    st.write("### 📌 To jest nagłówek w boxie")
-    st.write("Tutaj możesz wrzucić więcej treści, np. wykresy lub metryki.")
-
-with st.status("Analiza wyników Big Five", expanded=True) as status:
-    st.write("🔍 Przetwarzanie danych użytkownika...")
-    st.write("📊 Generowanie wykresów...")
-    st.write("✅ Gotowe!")

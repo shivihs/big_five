@@ -1,6 +1,6 @@
 from typing import Final
 
-APP_TITLE: Final[str] = ":computer: Big Five - Intee"
+APP_TITLE: Final[str] = "Big Five - Interpretacja wyników"
 
 BIG5_ITEMS: Final[dict[str, list[dict[str, str]]]] = {
     "O": [  # Otwartość
@@ -43,5 +43,5 @@ BIG5_SHORT_LABELS = {
     "N": "Neurotyczność"
 }
 
-st.
+
 

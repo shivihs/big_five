@@ -5,7 +5,6 @@ from dotenv import dotenv_values
 from config.constants import APP_TITLE, BIG5_ITEMS, BIG5_SHORT_LABELS
 import json
 
-
 st.set_page_config(
     page_title=APP_TITLE,
     page_icon="🧠",

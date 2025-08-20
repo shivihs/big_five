@@ -16,24 +16,37 @@ st.header(f"🧠 {APP_TITLE} :computer:")
 
 big5_items = BIG5_ITEMS
 
-env = dotenv_values(".env")
+# Initialize session state for OpenAI API key if it doesn't exist
+if "openai_api_key" not in st.session_state:
+    st.session_state["openai_api_key"] = None
 
+# Try to get API key from Streamlit secrets first
+try:
+    if not st.session_state["openai_api_key"]:
+        st.session_state["openai_api_key"] = st.secrets["OPENAI_API_KEY"]
+except:
+    # If not in secrets, try to get from .env file
+    try:
+        env = dotenv_values(".env")
+        if "OPENAI_API_KEY" in env and not st.session_state["openai_api_key"]:
+            st.session_state["openai_api_key"] = env["OPENAI_API_KEY"]
+    except:
+        pass
+
+# If still no API key, ask user
+if not st.session_state["openai_api_key"]:
+    st.info("Aby korzystać z aplikacji, podaj poniżej swój OpenAI API Key.")
+    api_key_input = st.text_input("Klucz OpenAI API", type="password")
+    if api_key_input:
+        st.session_state["openai_api_key"] = api_key_input
+        st.rerun()
+
+# Stop if no API key is available
+if not st.session_state["openai_api_key"]:
+    st.stop()
 
 def get_openai_client():
     return OpenAI(api_key=st.session_state["openai_api_key"])
-
-if not st.session_state.get("openai_api_key"):
-    if "OPENAI_API_KEY" in env:
-        st.session_state["openai_api_key"] = env["OPENAI_API_KEY"]
-    
-    else:
-        st.info("Aby korzystać z aplikacji, podaj poniżej swój OpenAI API Key.")
-        st.session_state["openai_api_key"] = st.text_input("Klucz OpenAI API", type="password")
-        if st.session_state["openai_api_key"]:
-            st.rerun()
-
-if not st.session_state.get("openai_api_key"):
-    st.stop()
 
 openai_client = get_openai_client()
 

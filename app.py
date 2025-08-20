@@ -77,7 +77,7 @@ if "results" not in st.session_state:
 def get_person_description(results: dict):
     try:
         personality_description = openai_client.chat.completions.create(
-            model="gpt-4",  # lub "gpt-4" jeśli masz dostęp
+            model="gpt-4",
             response_format={"type": "json_object"},
             messages=[
             {
@@ -108,10 +108,10 @@ def get_person_description(results: dict):
             json.loads(response_content)
             return response_content
         except json.JSONDecodeError:
-            st.error("❌ Otrzymano niepoprawną odpowiedź od API (nieprawidłowy format JSON)")
+            st.error("BLAD: Otrzymano niepoprawna odpowiedz od API (nieprawidlowy format JSON)")
             st.stop()
     except Exception as e:
-        st.error(f"❌ Błąd podczas generowania opisu: {str(e)}")
+        st.error(f"BLAD: Problem podczas generowania opisu: {str(e)}")
         st.stop()
 
 def score_item(answer_1_to_5: int, reverse: bool) -> float:

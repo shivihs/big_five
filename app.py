@@ -77,7 +77,7 @@ if "results" not in st.session_state:
 def get_person_description(results: dict):
     try:
         personality_description = openai_client.chat.completions.create(
-            model="gpt-4",
+            model="gpt-4o-mini",
             response_format={"type": "json_object"},
             messages=[
             {

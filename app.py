@@ -19,37 +19,47 @@ big5_items = BIG5_ITEMS
 # Initialize API key handling
 api_key = None
 
-# Try to get API key from Streamlit secrets
-try:
-    api_key = st.secrets["OPENAI_API_KEY"]
-    st.sidebar.success("✅ Używam klucza API z ustawień Streamlit")
-except Exception as e:
-    st.sidebar.warning("⚠️ Nie znaleziono klucza API w ustawieniach Streamlit")
+# Initialize session state for API key status
+if "api_key_configured" not in st.session_state:
+    st.session_state["api_key_configured"] = False
 
-# If no API key in secrets, try .env file
-if not api_key:
+if not st.session_state["api_key_configured"]:
+    # Try to get API key from Streamlit secrets
     try:
-        env = dotenv_values(".env")
-        api_key = env.get("OPENAI_API_KEY")
-        if api_key:
-            st.sidebar.success("✅ Używam klucza API z pliku .env")
+        api_key = st.secrets["OPENAI_API_KEY"]
+        st.session_state["openai_api_key"] = api_key
+        st.session_state["api_key_configured"] = True
+        st.rerun()
     except Exception as e:
-        st.sidebar.warning("⚠️ Nie znaleziono pliku .env lub brak w nim klucza API")
+        pass
 
-# If still no API key, ask user
-if not api_key:
-    st.sidebar.info("ℹ️ Podaj swój klucz OpenAI API poniżej")
-    api_key = st.sidebar.text_input("Klucz OpenAI API", type="password")
+    # If no API key in secrets, try .env file
+    if not st.session_state["api_key_configured"]:
+        try:
+            env = dotenv_values(".env")
+            api_key = env.get("OPENAI_API_KEY")
+            if api_key:
+                st.session_state["openai_api_key"] = api_key
+                st.session_state["api_key_configured"] = True
+                st.rerun()
+        except Exception as e:
+            pass
 
-# Validate and store API key
-if api_key:
-    if len(api_key.strip()) < 20:  # Basic validation
-        st.sidebar.error("❌ Nieprawidłowy format klucza API")
-        st.stop()
-    st.session_state["openai_api_key"] = api_key.strip()
-else:
-    st.sidebar.error("❌ Brak klucza API - aplikacja nie będzie działać")
-    st.stop()
+    # If still no API key, ask user
+    if not st.session_state["api_key_configured"]:
+        st.sidebar.info("ℹ️ Podaj swój klucz OpenAI API poniżej")
+        api_key = st.sidebar.text_input("Klucz OpenAI API", type="password")
+        
+        if api_key:
+            if len(api_key.strip()) < 20:  # Basic validation
+                st.sidebar.error("❌ Nieprawidłowy format klucza API")
+                st.stop()
+            st.session_state["openai_api_key"] = api_key.strip()
+            st.session_state["api_key_configured"] = True
+            st.rerun()
+        else:
+            st.sidebar.error("❌ Brak klucza API - aplikacja nie będzie działać")
+            st.stop()
 
 def get_openai_client():
     if not st.session_state.get("openai_api_key"):

@@ -1,6 +1,4 @@
 import streamlit as st
-import pandas as pd
-import seaborn as sns
 import random
 from openai import OpenAI
 from dotenv import dotenv_values

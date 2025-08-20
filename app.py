@@ -21,7 +21,24 @@ big5_items = BIG5_ITEMS
 
 env = dotenv_values(".env")
 
-openai_client = OpenAI(api_key=env.get("OPENAI_API_KEY"))
+
+def get_openai_client():
+    return OpenAI(api_key=st.session_state["openai_api_key"])
+
+if not st.session_state.get("openai_api_key"):
+    if "OPENAI_API_KEY" in env:
+        st.session_state["openai_api_key"] = env["OPENAI_API_KEY"]
+    
+    else:
+        st.info("Aby korzystać z aplikacji, podaj poniżej swój OpenAI API Key.")
+        st.session_state["openai_api_key"] = st.text_input("Klucz OpenAI API", type="password")
+        if st.session_state["openai_api_key"]:
+            st.rerun()
+
+if not st.session_state.get("openai_api_key"):
+    st.stop()
+
+openai_client = get_openai_client()
 
 if "results" not in st.session_state:
     st.session_state.results = None

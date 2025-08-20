@@ -75,33 +75,44 @@ if "results" not in st.session_state:
 
 
 def get_person_description(results: dict):
-    personality_description = openai_client.chat.completions.create(
-        model="gpt-4o-mini",
-        response_format={"type": "json_object"},
-        messages=[
-        {
-            "role": "system",
-            "content": (
-                "Jesteś pomocnym asystentem, który tworzy opis osobowości użytkownika "
-                "na podstawie wyników Testu Wielkiej Piątki (Big Five). "
-                "Twoim zadaniem jest:\n"
-                "- przedstawić opis w zrozumiałym i przyjaznym języku,\n"
-                "- podkreślić mocne strony użytkownika,\n"
-                "- wskazać potencjalne obszary do rozwoju,\n"
-                "- wygenerować listę kluczowych kompetencji miękkich,\n"
-                "- zaproponować 2–3 przykładowe frazy, które użytkownik może wykorzystać w CV.\n"
-                "Jako podsumowanie podaj opis kompetencji miękkich w 4-5 zdaniach pisanych w pierwszej osobie do CV - unikaj z testu, pisz naturalnie jako osoba nie znająca nomenklatury psychologicznej..\n"
-                "Zawsze odpowiadaj wyłącznie w formacie JSON. "
-                "W JSON zawsze używaj stałych nazw kluczy - opis_osobowosci (string), mocne_strony (lista stringów), obszary_rozwoju (lista stringów), kompetencje_miekkie (lista stringów), frazy_do_cv (lista stringów), opis_do_cv (string)"
-            )
-        },
-        {
-            "role": "user",
-            "content": f"Użytkownik uzyskał następujące wyniki w teście: {results}"
-        }
-        ]
-    )
-    return personality_description.choices[0].message.content
+    try:
+        personality_description = openai_client.chat.completions.create(
+            model="gpt-4",  # lub "gpt-4" jeśli masz dostęp
+            response_format={"type": "json_object"},
+            messages=[
+            {
+                "role": "system",
+                "content": (
+                    "Jesteś pomocnym asystentem, który tworzy opis osobowości użytkownika "
+                    "na podstawie wyników Testu Wielkiej Piątki (Big Five). "
+                    "Twoim zadaniem jest:\n"
+                    "- przedstawić opis w zrozumiałym i przyjaznym języku,\n"
+                    "- podkreślić mocne strony użytkownika,\n"
+                    "- wskazać potencjalne obszary do rozwoju,\n"
+                    "- wygenerować listę kluczowych kompetencji miękkich,\n"
+                    "- zaproponować 2–3 przykładowe frazy, które użytkownik może wykorzystać w CV.\n"
+                    "Jako podsumowanie podaj opis kompetencji miękkich w 4-5 zdaniach pisanych w pierwszej osobie do CV - unikaj z testu, pisz naturalnie jako osoba nie znająca nomenklatury psychologicznej..\n"
+                    "Zawsze odpowiadaj wyłącznie w formacie JSON. "
+                    "W JSON zawsze używaj stałych nazw kluczy - opis_osobowosci (string), mocne_strony (lista stringów), obszary_rozwoju (lista stringów), kompetencje_miekkie (lista stringów), frazy_do_cv (lista stringów), opis_do_cv (string)"
+                )
+            },
+            {
+                "role": "user",
+                "content": f"Użytkownik uzyskał następujące wyniki w teście: {results}"
+            }
+            ]
+        )
+        response_content = personality_description.choices[0].message.content
+        # Sprawdź, czy odpowiedź jest poprawnym JSON
+        try:
+            json.loads(response_content)
+            return response_content
+        except json.JSONDecodeError:
+            st.error("❌ Otrzymano niepoprawną odpowiedź od API (nieprawidłowy format JSON)")
+            st.stop()
+    except Exception as e:
+        st.error(f"❌ Błąd podczas generowania opisu: {str(e)}")
+        st.stop()
 
 def score_item(answer_1_to_5: int, reverse: bool) -> float:
     """Zwraca wynik w skali 1–5 po uwzględnieniu odwrócenia."""
